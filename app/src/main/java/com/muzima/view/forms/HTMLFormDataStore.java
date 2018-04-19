@@ -19,6 +19,7 @@ import android.widget.Toast;
 import com.muzima.MuzimaApplication;
 import com.muzima.R;
 import com.muzima.api.model.Concept;
+import com.muzima.api.model.Form;
 import com.muzima.api.model.Observation;
 import com.muzima.api.model.Encounter;
 import com.muzima.api.model.EncounterType;
@@ -32,6 +33,7 @@ import com.muzima.controller.LocationController;
 import com.muzima.controller.ObservationController;
 import com.muzima.controller.MuzimaSettingController;
 import com.muzima.controller.ProviderController;
+import com.muzima.model.collections.IncompleteForms;
 import com.muzima.model.observation.Concepts;
 import com.muzima.scheduler.RealTimeFormUploader;
 import com.muzima.service.HTMLFormObservationCreator;
@@ -41,11 +43,16 @@ import net.minidev.json.JSONValue;
 import org.json.JSONException;
 import com.muzima.controller.EncounterController;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 
 public class HTMLFormDataStore {
@@ -185,7 +192,7 @@ public class HTMLFormDataStore {
     public HTMLFormObservationCreator getFormParser() {
         MuzimaApplication applicationContext = (MuzimaApplication) formWebViewActivity.getApplicationContext();
         return new HTMLFormObservationCreator(applicationContext.getPatientController(), applicationContext.getConceptController(),
-                applicationContext.getEncounterController(), applicationContext.getObservationController());
+                applicationContext.getEncounterController(), applicationContext.getObservationController(),applicationContext.getLocationController(),applicationContext.getProviderController(),applicationContext.getFormController());
     }
     private boolean isRegistrationComplete(String status) {
         return formController.isRegistrationFormData(formData) && status.equals(Constants.STATUS_COMPLETE);
@@ -201,8 +208,8 @@ public class HTMLFormDataStore {
     public String getConcepts() throws JSONException {
         List<Concept> concepts = new ArrayList<Concept>();
         try {
-               concepts = conceptController.getConcepts();
-       } catch (ConceptController.ConceptFetchException e) {
+            concepts = conceptController.getConcepts();
+        } catch (ConceptController.ConceptFetchException e) {
             Log.e(TAG, "Exception occurred while loading concepts", e);
         }
         catch (Exception e){
@@ -248,7 +255,7 @@ public class HTMLFormDataStore {
     }
 
     @JavascriptInterface
-    public String getObsByConceptId(String patientUuid,int conceptId) throws JSONException{
+    public String getObsByConceptId(String patientUuid,int conceptId) throws JSONException, ConceptController.ConceptFetchException {
         List<Observation> observations = new ArrayList<Observation>();
         try {
             observations = observationController.getObservationsByPatientuuidAndConceptId(patientUuid,conceptId);
@@ -258,11 +265,11 @@ public class HTMLFormDataStore {
         catch (Exception e){
             Log.e(TAG, "Exception occurred while loading observations", e);
         }
-        return JSONValue.toJSONString(observations);
+        return createObsJsonArray(observations);
     }
 
     @JavascriptInterface
-    public String getObsByEncounterId(int encounterid){
+    public String getObsByEncounterId(int encounterid) throws JSONException, ConceptController.ConceptFetchException {
         List<Observation> observations = new ArrayList<Observation>();
         try {
             observations = observationController.getObservationsByEncounterId(encounterid);
@@ -272,11 +279,11 @@ public class HTMLFormDataStore {
         catch (Exception e){
             Log.e(TAG, "Exception occurred while loading observations", e);
         }
-        return JSONValue.toJSONString(observations);
+        return createObsJsonArray(observations);
     }
 
     @JavascriptInterface
-    public String getObsByEncounterType(String patientUuid,String encounterType){
+    public String getObsByEncounterType(String patientUuid,String encounterType) throws JSONException, ConceptController.ConceptFetchException {
         List<Observation> observations = new ArrayList<Observation>();
         List<Encounter> encounters=new ArrayList<Encounter>();
         try {
@@ -293,10 +300,113 @@ public class HTMLFormDataStore {
         } catch (Exception e){
             Log.e(TAG, "Exception occurred while loading observations", e);
         }
-        return JSONValue.toJSONString(observations);
+        return createObsJsonArray(observations);
     }
+    public String createObsJsonArray(List<Observation> observations) throws JSONException, ConceptController.ConceptFetchException {
+        int i = 0;
+        JSONArray arr = new JSONArray();
+        HashMap<String, JSONObject> map = new HashMap<String, JSONObject>( );
+        List<Concept> concepts =new ArrayList<Concept>();
+        concepts = conceptController.getConcepts();
+        for (Observation obs : observations) {
+            String conceptName="";
+            String conceptUuid = obs.getConcept().getUuid();
+            for(Concept concept:concepts){
+                if(concept.getUuid().equals(conceptUuid)){
+                    conceptName = concept.getName();
+                }
+            }
+            final String dateFormat = "dd-MM-yyyy";
+            SimpleDateFormat newDateFormat = new SimpleDateFormat("dd-MM-yy HH:mm:ss");
+            Date d = null;
+            try {
+                d = newDateFormat.parse(newDateFormat.format(obs.getObservationDatetime()));
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            newDateFormat.applyPattern(dateFormat);
+            String convertedEncounterDate = newDateFormat.format(d);
 
+            JSONObject json = new JSONObject();
+            if (!conceptName.isEmpty()) {
+                json.put("conceptName", conceptName);
+            } else {
+                json.put("conceptName", "Concept Created On Phone");
+            }
+            json.put("obsDate", convertedEncounterDate);
+            json.put("valueCoded", obs.getValueCoded().getName());
+            json.put("valueNumeric", obs.getValueNumeric());
+            json.put("valueText", obs.getValueText());
+            map.put("json" + i, json);
+            arr.put(map.get("json" + i));
+            i++;
+        }
+        return arr.toString();
+    }
     public boolean isMedicalRecordNumberRequired(){
         return settingController.isMedicalRecordNumberRequiredDuringRegistration();
+    }
+
+    @JavascriptInterface
+    public void checkForPossibleFormDuplicate(String formUuid, String encounterDateTime, String patientUuid,String encounterPayLoad) throws FormController.FormDataFetchException, JSONException {
+        JSONObject mainObject = new JSONObject(encounterPayLoad);
+        JSONObject encounterObject = mainObject.getJSONObject("encounter");
+        if(!(encounterObject.has("encounter.encounter_datetime"))) {
+            List<FormData> allFormData = new ArrayList<FormData>( );
+            allFormData = formController.getAllFormDataByPatientUuid(patientUuid, Constants.STATUS_INCOMPLETE);
+            for (FormData formData : allFormData) {
+                Date encounterDate = formData.getEncounterDate( );
+                String formDataUuid = formData.getTemplateUuid( );
+
+                final String dateFormat = "dd-MM-yyyy";
+
+                SimpleDateFormat newDateFormat = new SimpleDateFormat("dd-MM-yy HH:mm:ss");
+                Date d = null;
+                try {
+                    d = newDateFormat.parse(newDateFormat.format(encounterDate));
+                } catch (ParseException e) {
+                    e.printStackTrace( );
+                }
+                newDateFormat.applyPattern(dateFormat);
+                String convertedEncounterDate = newDateFormat.format(d);
+
+                if (convertedEncounterDate.equals(encounterDateTime) && formDataUuid.equals(formUuid)) {
+                    formWebViewActivity.showWarningDialog( );
+                    break;
+                }
+            }
+        }
+    }
+
+    @JavascriptInterface
+    public boolean getDefaultEncounterLocationSetting(){
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(formWebViewActivity.getApplicationContext());
+        String defaultLocationName = preferences.getString("defaultEncounterLocation",getStringResource("no_default_encounter_location"));
+        String defaultValue = getStringResource("no_default_encounter_location");
+        if(defaultLocationName.equals(defaultValue)){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    @JavascriptInterface
+    public String getDefaultEncounterLocationPreference() throws LocationController.LocationLoadException {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(formWebViewActivity.getApplicationContext());
+        String defaultLocationName = preferences.getString("defaultEncounterLocation",getStringResource("no_default_encounter_location"));
+        String defaultValue = getStringResource("no_default_encounter_location");
+        List<Location> defaultLocation = new ArrayList<Location>();
+        List<Location> locations = new ArrayList<Location>();
+
+        locations = locationController.getAllLocations();
+        if(!defaultLocationName.equals(defaultValue)){
+            for(Location loc:locations) {
+                if(Integer.toString(loc.getId()).equals(defaultLocationName)) {
+                    defaultLocation.add(loc);
+                }
+            }
+            return JSONValue.toJSONString(defaultLocation);
+        }
+        return JSONValue.toJSONString(locations);
     }
 }
