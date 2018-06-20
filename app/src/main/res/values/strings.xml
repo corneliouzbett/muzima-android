@@ -568,4 +568,26 @@
     <string name="form_encounter_provider">Encounter provider</string>
     <string name="title_missing_form_encounter_details_error">Missing Encounter Details</string>
     <string name="message_missing_form_encounter_details_error">must be provided</string>
+
+    <string name="title_activity_welcome">Home Screen</string>
+    <string name="next">NEXT</string>
+    <string name="skip">SKIP</string>
+    <string name="start">GOT IT</string>
+
+    <string name="slide_1_title">Muzima for Health Providers</string>
+    <string name="slide_1_desc">An adaptable, open source, android-based mHealth platform whose current
+        version interoperates seamlessly with the OpenMRS™ Electronic Health Record System.</string>
+
+    <string name="slide_2_title">Let\'s customize muzima app for your facility !! </string>
+    <string name="slide_2_desc">Give your organisation name or the facility name</string>
+
+    <string name="slide_3_title">Facility Logo</string>
+    <string name="slide_3_desc">please upload your organisational logo which will appear every time
+        you are logging into the app</string>
+
+    <string name="slide_4_title">Finishing up</string>
+    <string name="slide_4_desc">App customization setting is done</string>
+
+    <string name="play_again_desc">To see the welcome slider again, goto Settings -> apps -> welcome slider -> clear data</string>
+    <string name="play_again">Play Again</string>
 </resources>
