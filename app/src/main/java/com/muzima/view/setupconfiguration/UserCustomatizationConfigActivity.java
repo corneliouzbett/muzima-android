@@ -2,9 +2,15 @@ package com.muzima.view.setupconfiguration;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -23,6 +29,7 @@ import android.widget.Toast;
 import com.muzima.R;
 import com.muzima.view.MainActivity;
 import com.muzima.view.setupconfiguration.preferences.PrefManager;
+import com.muzima.view.setupconfiguration.utils.ImageSharedPreferences;
 
 public class UserCustomatizationConfigActivity extends AppCompatActivity {
 
@@ -35,7 +42,8 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
     private PrefManager prefManager;
     private Button upload_logo_Button;
     private EditText nameEditText;
-
+    public static final int PICK_IMAGE = 1;
+    private SharedPreferences sharedPreferences;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,6 +66,26 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
         dotsLayout = (LinearLayout) findViewById(R.id.layoutDots);
         btnSkip = (Button) findViewById(R.id.btn_skip);
         btnNext = (Button) findViewById(R.id.btn_next);
+
+/*
+        upload_logo_Button = (Button) findViewById(R.id.upload_logo_button);
+        upload_logo_Button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent getIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                getIntent.setType("image/*");
+
+                Intent pickIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                pickIntent.setType("image/*");
+
+                Intent chooserIntent = Intent.createChooser(getIntent, "Select Image logo");
+                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {pickIntent});
+
+                startActivityForResult(chooserIntent, PICK_IMAGE);
+            }
+        });
+
+*/
 
 
         // layouts of all welcome sliders
@@ -147,21 +175,6 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
                 btnNext.setText(getString(R.string.next));
                 btnSkip.setVisibility(View.VISIBLE);
             }
-            switch (position){
-                case 0:
-                    Toast.makeText(getApplicationContext(),"Index 0",Toast.LENGTH_LONG).show();
-                    break;
-                case 1:
-                    Toast.makeText(getApplicationContext(),"Index 2",Toast.LENGTH_LONG).show();
-                    break;
-                case 2:
-                    Toast.makeText(getApplicationContext(),"Index 2",Toast.LENGTH_LONG).show();
-                    break;
-                case 3:
-                    Toast.makeText(getApplicationContext(),"Index 3",Toast.LENGTH_LONG).show();
-                    default:
-                        return;
-            }
         }
 
         @Override
@@ -189,37 +202,81 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
     /**
      * View pager adapter
      */
-    public class MyViewPagerAdapter extends PagerAdapter {
+    public class MyViewPagerAdapter extends PagerAdapter implements activityResultInterface{
         private LayoutInflater layoutInflater;
-
-        public MyViewPagerAdapter() {
-        }
-
-        @Override
-        public Object instantiateItem(ViewGroup container, int position) {
-            layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-            View view = layoutInflater.inflate(layouts[position], container, false);
-            container.addView(view);
-
-            return view;
-        }
-
         @Override
         public int getCount() {
             return layouts.length;
         }
 
         @Override
-        public boolean isViewFromObject(View view, Object obj) {
-            return view == obj;
+        public Object instantiateItem(View collection, int position) {
+            LayoutInflater layoutinflater = getLayoutInflater();
+
+            View view = null;
+
+            switch (position) {
+                case 0:
+                    view = layoutinflater.inflate(R.layout.user_config_intro, null);
+                    break;
+                case 1:
+                    view = layoutinflater.inflate(R.layout.user_config_name, null);
+                    break;
+                case 2:
+                    view = layoutinflater.inflate(R.layout.user_config_logo, null);
+                    Button bb = (Button) view.findViewById(R.id.upload_logo_button);
+                    bb.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            Intent getIntent = new Intent(Intent.ACTION_CHOOSER);
+                            getIntent.setType("image/*");
+
+                            Intent pickIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                            pickIntent.setType("image/*");
+
+                            Intent chooserIntent = Intent.createChooser(getIntent, "Select Image logo");
+                            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {pickIntent});
+
+                            startActivityForResult(chooserIntent, PICK_IMAGE);
+                        }
+                    });
+                    break;
+                case 3:
+                    view = layoutinflater.inflate(R.layout.user_config_finish, null);
+                    break;
+
+            }
+            ((ViewPager) collection).addView(view);
+            return view;
         }
 
+        @Override
+        public void destroyItem(View collection, int position, Object view) {
+            ((ViewPager) collection).removeView((View) view);
+        }
 
         @Override
-        public void destroyItem(ViewGroup container, int position, Object object) {
-            View view = (View) object;
-            container.removeView(view);
+        public void onActivityResult(int requestCode, int resultCode, Intent data)
+        {
+            if (requestCode == PICK_IMAGE  && resultCode == RESULT_OK && data != null) {
+                Uri pickedImage = data.getData();
+                // Let's read picked image path using content resolver
+                String[] filePath = { MediaStore.Images.Media.DATA };
+                Cursor cursor = getContentResolver().query(pickedImage, filePath, null, null, null);
+                cursor.moveToFirst();
+                String imagePath = cursor.getString(cursor.getColumnIndex(filePath[0]));
+
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bitmap = BitmapFactory.decodeFile(imagePath, options);
+                ImageSharedPreferences.saveImageLogo(bitmap,sharedPreferences);
+                cursor.close();
+            }
+        }
+
+        @Override
+        public boolean isViewFromObject(View view, Object object) {
+            return view == ((View) object);
         }
     }
 }
