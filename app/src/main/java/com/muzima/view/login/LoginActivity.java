@@ -13,16 +13,19 @@ package com.muzima.view.login;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.animation.ValueAnimator;
@@ -40,6 +43,9 @@ import com.muzima.service.WizardFinishPreferenceService;
 import com.muzima.utils.StringUtils;
 import com.muzima.view.MainActivity;
 import com.muzima.view.setupconfiguration.SetupMethodPreferenceWizardActivity;
+import com.muzima.view.setupconfiguration.constants.UserConfigConstants;
+import com.muzima.view.setupconfiguration.utils.ImageSharedPreferences;
+import com.muzima.view.setupconfiguration.utils.ImageUtils;
 
 import java.util.Locale;
 
@@ -66,6 +72,9 @@ public class LoginActivity extends Activity {
     private ValueAnimator flipFromAuthToNoConnAnimator;
     private boolean isUpdatePasswordChecked;
 
+    private ImageView logoImageView;
+    private TextView titleTextView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +83,7 @@ public class LoginActivity extends Activity {
         showSessionTimeOutPopUpIfNeeded();
 
         initViews();
+        setUpLogoandTitle();
         setupListeners();
         initAnimators();
 
@@ -91,7 +101,7 @@ public class LoginActivity extends Activity {
 
         //Hack to get it to use default font space.
         passwordText.setTypeface(Typeface.DEFAULT);
-        versionText.setText(getApplicationVersion());
+        versionText.setText("Powered by mUzima Provider"+getApplicationVersion());
         usernameText.requestFocus();
     }
 
@@ -222,7 +232,13 @@ public class LoginActivity extends Activity {
         loginButton = (Button) findViewById(R.id.login);
         authenticatingText = (TextView) findViewById(R.id.authenticatingText);
         versionText = (TextView) findViewById(R.id.version);
+        titleTextView = (TextView) findViewById(R.id.title_login);
+        logoImageView = (ImageView) findViewById(R.id.logo);
 
+    }
+    private void setUpLogoandTitle(){
+        logoImageView.setImageBitmap(ImageSharedPreferences.retrieveImageLogo(getApplicationContext()));
+        titleTextView.setText(ImageSharedPreferences.retrieveTitle(getApplicationContext()));
     }
 
     public void onUpdatePasswordCheckboxClicked(View view) {

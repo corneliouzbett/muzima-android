@@ -94,7 +94,7 @@
     <string name="general_agree">Agree</string>
     <string name="general_alert">Alert!</string>
     <string name="general_all">All</string>
-    <string name="general_application_version">Version %1$s</string>
+    <string name="general_application_version">Powered by mUzima Provider Version %1$s</string>
     <string name="general_cancel">Cancel</string>
     <string name="general_caution">Caution!</string>
     <string name="general_client_list">Client List</string>

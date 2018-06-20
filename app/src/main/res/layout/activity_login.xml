@@ -23,6 +23,7 @@
 
         <TextView
                 android:id="@+id/title_login"
+                android:inputType="textCapWords"
                 style="@style/LoginActivityHeader"/>
 
         <View style="@style/LoginActivityDivider.Style"/>

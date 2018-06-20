@@ -7,6 +7,11 @@ import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 
+/**
+ * author Bett Kipchumba
+ * Created by corneliouzBett on 15/07/18.
+ */
+
 public class ImageUtils {
 
     // encoding

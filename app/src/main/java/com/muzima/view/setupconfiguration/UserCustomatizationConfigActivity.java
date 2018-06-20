@@ -15,6 +15,7 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
@@ -23,6 +24,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.muzima.R;
 import com.muzima.view.MainActivity;
@@ -39,10 +41,8 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
     private int[] layouts;
     private Button btnSkip, btnNext;
     private PrefManager prefManager;
-    private Button upload_logo_Button;
-    private EditText nameEditText;
     public static final int PICK_IMAGE = 1;
-    private SharedPreferences sharedPreferences;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,42 +80,17 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
         myViewPagerAdapter = new MyViewPagerAdapter();
         viewPager.setAdapter(myViewPagerAdapter);
         viewPager.addOnPageChangeListener(viewPagerPageChangeListener);
-
-        btnSkip.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                launchHomeScreen();
-            }
-        });
+        btnSkip.setVisibility(View.INVISIBLE);
 
         btnNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // checking for last page
-                // if last page home screen will be launched
-                switch (layouts.length){
-                    case 1:
-                        viewPager.setCurrentItem(0);
-                        break;
-                    case 2:
-                        viewPager.setCurrentItem(1);
-                        break;
-                    case 3:
-                        viewPager.setCurrentItem(2);
-                        break;
-                    case 4:
-                        viewPager.setCurrentItem(3);
-                        break;
-
-                }
                 int current = getItem(+1);
                 if (current < layouts.length) {
                     // move to next screen
-                    if (current == 2){
-                SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString(UserConfigConstants.FACILITY_NAME,myViewPagerAdapter.nameEditText.getText().toString().trim());
-                editor.apply();
+                    if (current == 2) {
+                        Log.e("name", "onClick: " + myViewPagerAdapter.nameEditText.getText().toString().trim());
+                       ImageSharedPreferences.saveTitle(myViewPagerAdapter.nameEditText.getText().toString().trim(),getApplicationContext());
                     }
                     viewPager.setCurrentItem(current);
                 } else {
@@ -160,7 +135,6 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
         @Override
         public void onPageSelected(int position) {
             addBottomDots(position);
-
             // changing the next button text 'NEXT' / 'GOT IT'
             if (position == layouts.length - 1) {
                 // last page. make button text to GOT IT
@@ -194,12 +168,36 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
             window.setStatusBarColor(Color.TRANSPARENT);
         }
     }
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (viewPager.getCurrentItem() == 2){
+            if (requestCode == PICK_IMAGE && resultCode == RESULT_OK && data != null) {
+                Uri pickedImage = data.getData();
+                // Let's read picked image path using content resolver
+                String[] filePath = {MediaStore.Images.Media.DATA};
+                Cursor cursor = getContentResolver().query(pickedImage, filePath, null, null, null);
+                cursor.moveToFirst();
+                String imagePath = cursor.getString(cursor.getColumnIndex(filePath[0]));
+
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bitmap = BitmapFactory.decodeFile(imagePath, options);
+
+                ImageSharedPreferences.saveImageLogo(bitmap, getApplicationContext());
+                Toast.makeText(getApplicationContext(), "logo saved successfull", Toast.LENGTH_LONG).show();
+                cursor.close();
+            }
+        }
+    }
 
     /**
      * View pager adapter
      */
-    public class MyViewPagerAdapter extends PagerAdapter implements activityResultInterface{
+    public class MyViewPagerAdapter extends PagerAdapter{
+
         EditText nameEditText;
+
         @Override
         public int getCount() {
             return layouts.length;
@@ -232,7 +230,7 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
                             pickIntent.setType("image/*");
 
                             Intent chooserIntent = Intent.createChooser(getIntent, "Select Image logo");
-                            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {pickIntent});
+                            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{pickIntent});
 
                             startActivityForResult(chooserIntent, PICK_IMAGE);
                         }
@@ -252,24 +250,6 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
             ((ViewPager) collection).removeView((View) view);
         }
 
-        @Override
-        public void onActivityResult(int requestCode, int resultCode, Intent data)
-        {
-            if (requestCode == PICK_IMAGE  && resultCode == RESULT_OK && data != null) {
-                Uri pickedImage = data.getData();
-                // Let's read picked image path using content resolver
-                String[] filePath = { MediaStore.Images.Media.DATA };
-                Cursor cursor = getContentResolver().query(pickedImage, filePath, null, null, null);
-                cursor.moveToFirst();
-                String imagePath = cursor.getString(cursor.getColumnIndex(filePath[0]));
-
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bitmap = BitmapFactory.decodeFile(imagePath, options);
-                ImageSharedPreferences.saveImageLogo(bitmap,sharedPreferences);
-                cursor.close();
-            }
-        }
 
         @Override
         public boolean isViewFromObject(View view, Object object) {

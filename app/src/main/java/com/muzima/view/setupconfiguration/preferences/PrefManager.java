@@ -13,10 +13,7 @@ public class PrefManager {
 
     // shared pref mode
     int PRIVATE_MODE = 0;
-
-    // Shared preferences file name
     private static final String PREF_NAME = "muzima-welcome";
-
     private static final String IS_FIRST_TIME_LAUNCH = "IsFirstTimeLaunch";
 
     public PrefManager(Context context) {
