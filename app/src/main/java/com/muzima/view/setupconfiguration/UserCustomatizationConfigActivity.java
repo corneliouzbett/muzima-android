@@ -1,6 +1,5 @@
 package com.muzima.view.setupconfiguration;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -10,6 +9,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -17,17 +17,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.muzima.R;
 import com.muzima.view.MainActivity;
+import com.muzima.view.setupconfiguration.constants.UserConfigConstants;
 import com.muzima.view.setupconfiguration.preferences.PrefManager;
 import com.muzima.view.setupconfiguration.utils.ImageSharedPreferences;
 
@@ -66,30 +65,6 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
         dotsLayout = (LinearLayout) findViewById(R.id.layoutDots);
         btnSkip = (Button) findViewById(R.id.btn_skip);
         btnNext = (Button) findViewById(R.id.btn_next);
-
-/*
-        upload_logo_Button = (Button) findViewById(R.id.upload_logo_button);
-        upload_logo_Button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent getIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                getIntent.setType("image/*");
-
-                Intent pickIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                pickIntent.setType("image/*");
-
-                Intent chooserIntent = Intent.createChooser(getIntent, "Select Image logo");
-                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {pickIntent});
-
-                startActivityForResult(chooserIntent, PICK_IMAGE);
-            }
-        });
-
-*/
-
-
-        // layouts of all welcome sliders
-        // add few more layouts if you want
         layouts = new int[]{
                 R.layout.user_config_intro,
                 R.layout.user_config_name,
@@ -118,9 +93,30 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // checking for last page
                 // if last page home screen will be launched
+                switch (layouts.length){
+                    case 1:
+                        viewPager.setCurrentItem(0);
+                        break;
+                    case 2:
+                        viewPager.setCurrentItem(1);
+                        break;
+                    case 3:
+                        viewPager.setCurrentItem(2);
+                        break;
+                    case 4:
+                        viewPager.setCurrentItem(3);
+                        break;
+
+                }
                 int current = getItem(+1);
                 if (current < layouts.length) {
                     // move to next screen
+                    if (current == 2){
+                SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(UserConfigConstants.FACILITY_NAME,myViewPagerAdapter.nameEditText.getText().toString().trim());
+                editor.apply();
+                    }
                     viewPager.setCurrentItem(current);
                 } else {
                     launchHomeScreen();
@@ -203,7 +199,7 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
      * View pager adapter
      */
     public class MyViewPagerAdapter extends PagerAdapter implements activityResultInterface{
-        private LayoutInflater layoutInflater;
+        EditText nameEditText;
         @Override
         public int getCount() {
             return layouts.length;
@@ -221,6 +217,7 @@ public class UserCustomatizationConfigActivity extends AppCompatActivity {
                     break;
                 case 1:
                     view = layoutinflater.inflate(R.layout.user_config_name, null);
+                    nameEditText = (EditText) view.findViewById(R.id.nameedtx);
                     break;
                 case 2:
                     view = layoutinflater.inflate(R.layout.user_config_logo, null);

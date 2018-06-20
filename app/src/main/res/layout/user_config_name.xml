@@ -17,11 +17,12 @@
             android:text="@string/slide_2_title"
             android:gravity="center_horizontal"
             android:textColor="@android:color/white"
-            android:textSize="@dimen/slide_title"
+            android:textSize="22sp"
+            android:fontFamily="sans-serif"
             android:layout_marginBottom="30dp"
             android:textStyle="normal" />
         <EditText
-            android:id="@+id/name"
+            android:id="@+id/nameedtx"
             android:layout_margin="20dp"
             style="@style/LoginInfoEditText"
             android:inputType="text"
@@ -35,6 +36,7 @@
             android:layout_marginTop="20dp"
             android:paddingLeft="@dimen/desc_padding"
             android:paddingRight="@dimen/desc_padding"
+            android:gravity="center_horizontal"
             android:text="@string/slide_2_desc"
             android:textAlignment="center"
             android:textColor="@android:color/white"
